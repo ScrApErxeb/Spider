@@ -14,6 +14,19 @@ def _load_logging():
         with open(log_conf, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
             logging.config.dictConfig(config)
+    # runtime overrides
+    level = os.getenv("LOG_LEVEL")
+    logfile = os.getenv("LOG_FILE")
+    if level or logfile:
+        root = logging.getLogger()
+        if level:
+            root.setLevel(level)
+        if logfile:
+            from logging.handlers import RotatingFileHandler
+            fh = RotatingFileHandler(logfile, maxBytes=5_000_000, backupCount=3, encoding="utf-8")
+            fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+            fh.setFormatter(fmt)
+            root.addHandler(fh)
 
 def get(key, default=None):
     return os.getenv(key, default)
@@ -23,7 +36,7 @@ def get_root_urls():
     return [r.strip() for r in roots.split(",") if r.strip()]
 
 def get_user_agent():
-    return os.getenv("USER_AGENT", "SimpleBot/0.2")
+    return os.getenv("USER_AGENT", "SimpleBot/0.3")
 
 def get_delay():
     try:
