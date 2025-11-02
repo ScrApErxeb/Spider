@@ -1,5 +1,23 @@
-project_env/
+# Python
 __pycache__/
-data/
-*.log 
+*.pyc
+*.pyo
+*.pyd
+
+# Environnements
+.env
+venv/
+project_env/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Tests et logs
+.pytest_cache/
+*.log
+
+# Exports et data
 exports/
+data/
+project_env
