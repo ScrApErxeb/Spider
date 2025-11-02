@@ -21,3 +21,6 @@ Thumbs.db
 exports/
 data/
 project_env
+data.csv
+data.json
+data.db
