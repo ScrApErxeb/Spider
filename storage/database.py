@@ -3,32 +3,81 @@ import logging
 
 class Database:
     def __init__(self, path="data.db"):
-        self.conn = sqlite3.connect(path)
-        self.cursor = self.conn.cursor()
+        self.path = path
+        self.conn = None
         self.logger = logging.getLogger(__name__)
-        self._init_db()
 
-    def _init_db(self):
-        self.cursor.execute(
-            "CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY, content TEXT)"
-        )
-        self.conn.commit()
+    def connect(self):
+        if not self.conn:
+            self.conn = sqlite3.connect(self.path)
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS data (
+                    id INTEGER PRIMARY KEY,
+                    title TEXT,
+                    url TEXT,
+                    content TEXT
+                )
+            """)
+            self.conn.commit()
+        return self.conn
 
     def save(self, record):
-        self.cursor.execute("INSERT INTO data (content) VALUES (?)", (record,))
-        self.conn.commit()
+        conn = self.connect()
+        cur = conn.cursor()
+
+        # Si liste de tuples -> insertion multiple
+        if isinstance(record, list) and all(isinstance(r, (list, tuple)) for r in record):
+            cur.executemany(
+                "INSERT INTO data (title, url, content) VALUES (?, ?, ?)",
+                record
+            )
+            conn.commit()
+            return len(record)
+
+        # Si tuple unique
+        elif isinstance(record, (list, tuple)) and len(record) == 3:
+            cur.execute("INSERT INTO data (title, url, content) VALUES (?, ?, ?)", record)
+            conn.commit()
+            return 1
+
+        # Si simple chaîne -> stocker dans content
+        elif isinstance(record, str):
+            cur.execute("INSERT INTO data (title, url, content) VALUES ('', '', ?)", (record,))
+            conn.commit()
+            return 1
+
+        else:
+            raise ValueError("Format d’enregistrement non pris en charge")
 
     def save_batch(self, records):
+        conn = self.connect()
         if not records:
-            return
-        data = [(r,) for r in records]
-        self.cursor.executemany("INSERT INTO data (content) VALUES (?)", data)
-        self.conn.commit()
-        self.logger.debug(f"Batch insert {len(records)} rows")
+            self.logger.warning("Empty batch, nothing saved")
+            return 0
 
-    def load(self, query="SELECT * FROM data"):
-        self.cursor.execute(query)
-        return self.cursor.fetchall()
+        cur = conn.cursor()
+        normalized = []
+        for r in records:
+            if isinstance(r, (list, tuple)) and len(r) == 3:
+                normalized.append(tuple(r))
+            else:
+                normalized.append(("", "", str(r)))
+
+        cur.executemany(
+            "INSERT INTO data (title, url, content) VALUES (?, ?, ?)",
+            normalized,
+        )
+        conn.commit()
+        self.logger.info(f"Saved {len(records)} records in batch")
+        return len(records)
+
+    def load(self):
+        conn = self.connect()
+        cur = conn.cursor()
+        cur.execute("SELECT title, url, content FROM data")
+        return cur.fetchall()
 
     def close(self):
-        self.conn.close()
+        if self.conn:
+            self.conn.close()
+            self.conn = None

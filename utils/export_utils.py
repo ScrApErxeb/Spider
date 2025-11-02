@@ -5,14 +5,11 @@ from datetime import datetime
 from pathlib import Path
 
 EXPORT_DIR = Path("exports")
-EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+EXPORT_DIR.mkdir(exist_ok=True)
 
 def get_path(fmt):
-    export_dir = Path("exports")
-    export_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    return export_dir / f"export_{ts}.{fmt}"
-
+    return EXPORT_DIR / f"export_{ts}.{fmt}"
 
 def export_json(data):
     path = get_path("json")
@@ -22,11 +19,10 @@ def export_json(data):
 
 def export_csv(data):
     path = get_path("csv")
-    path.parent.mkdir(exist_ok=True)
-    if path.exists():
-        path.unlink()
     if not data:
-        open(path, "w", encoding="utf-8").close()
+        # fichier vide garanti
+        with open(path, "w", encoding="utf-8"):
+            pass
         return path
     keys = list(data[0].keys())
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -34,8 +30,6 @@ def export_csv(data):
         writer.writeheader()
         writer.writerows(data)
     return path
-
-
 
 def compress(path):
     zip_path = path.with_suffix(".zip")
