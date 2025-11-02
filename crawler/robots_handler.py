@@ -1,14 +1,13 @@
 import urllib.robotparser
 
-class RobotsHandler:
-    def __init__(self):
-        self.parsers = {}
-
-    def allowed(self, url, user_agent="*"):
-        domain = url.split("/")[2]
-        if domain not in self.parsers:
-            rp = urllib.robotparser.RobotFileParser()
-            rp.set_url(f"https://{domain}/robots.txt")
-            rp.read()
-            self.parsers[domain] = rp
-        return self.parsers[domain].can_fetch(user_agent, url)
+def allowed(url: str, user_agent: str = "*") -> bool:
+    """Vérifie si l’URL est autorisée par robots.txt."""
+    try:
+        parts = url.split("/")
+        base = f"{parts[0]}//{parts[2]}"
+        rp = urllib.robotparser.RobotFileParser()
+        rp.set_url(f"{base}/robots.txt")
+        rp.read()
+        return rp.can_fetch(user_agent, url)
+    except Exception:
+        return True

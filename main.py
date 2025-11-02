@@ -1,51 +1,22 @@
-import logging
-import time
-from crawler.crawler_main import crawl
-from scraper.scraper_main import extract
-from storage.database import save
-from storage.exporter import export_json, export_csv
-from config.settings import load_env, get_root_urls, get_delay
-
-logger = logging.getLogger("main")
-
-def init_system():
-    load_env()
-    logger.info("Configuration chargée.")
-
-def pipeline():
-    start_time = time.time()
-    urls = get_root_urls()
-    logger.info("Début du crawl sur %s", urls)
-    pages = []
-    try:
-        pages = crawl(start_urls=urls)
-    except Exception as e:
-        logger.exception("Erreur lors du crawl: %s", e)
-
-    logger.info("Pages récupérées: %d", len(pages))
-    data = []
-    try:
-        data = extract(pages)
-    except Exception as e:
-        logger.exception("Erreur lors de l'extraction: %s", e)
-
-    try:
-        save(data)
-        export_json(data)
-        export_csv(data)
-    except Exception as e:
-        logger.exception("Erreur lors du stockage/export: %s", e)
-
-    duration = time.time() - start_time
-    logger.info("Pipeline terminé en %.2fs. pages=%d items=%d", duration, len(pages), len(data))
+from crawler.crawler_main import run_crawler
+from scraper.scraper_main import run_scraper
+from storage.database import Database
+from utils.export_utils import export_json, export_csv  # ou storage.exporter
 
 def main():
-    try:
-        init_system()
-        pipeline()
-        logger.info("Execution normale.")
-    except Exception as e:
-        logger.exception("Crash non attendu: %s", e)
+    start_urls = ["http://example.com", "http://test.com"]
+    crawled = run_crawler(start_urls)
+    parsed = run_scraper(crawled)
 
-if __name__ == "__main__":
-    main()
+    db = Database(path="data/project.db")
+    db.connect()
+    # Option A: save content strings
+    contents = [p.get("content", "") for p in parsed]
+    db.save_batch(contents)
+
+    # Option B: save structured tuples (title, url, content)
+    # tuples = [(p.get("title",""), p.get("url",""), p.get("content","")) for p in parsed]
+    # db.save_batch(tuples)
+
+    export_json(parsed)
+    export_csv(parsed)

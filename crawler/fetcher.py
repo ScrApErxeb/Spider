@@ -33,3 +33,17 @@ class AsyncFetcher:
                     await asyncio.sleep(delay)
                     delay *= self.backoff
             return None
+
+
+def fetch_page(url: str):
+    """Interface synchrone pour compatibilité avec le pipeline."""
+    fetcher = AsyncFetcher()
+
+    async def _run():
+        return await fetcher.fetch(url)
+
+    try:
+        return asyncio.run(_run())
+    except RuntimeError:  # boucle déjà en cours
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(_run())
