@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from scraper.parser_html import parse_html
-from scraper.cleaner import sanitize
+from scraper.parser import parse_html
+from scraper.parser import sanitize
 from scraper.async_scraper import AsyncScraper
 from storage.database import Database
 
