@@ -1,17 +1,50 @@
+import asyncio
 import logging
-from .parser_html import parse_html
-from .cleaner import sanitize
+from scraper.parser_html import parse_html
+from scraper.cleaner import sanitize
+from storage.database import Database
 
-logger = logging.getLogger("scraper.main")
+class AsyncScraper:
+    def __init__(self, pages):
+        self.pages = pages
+        self.logger = logging.getLogger(__name__)
+        self.db = Database()
 
-def extract(pages):
-    raw = []
-    for url, html in pages:
+    async def process_page(self, page):
+        html, url = page
         try:
-            parsed = parse_html(html)
-            parsed["source"] = url
-            raw.append(parsed)
+            data = parse_html(html)
+            clean = sanitize(data)
+            await asyncio.sleep(0)  # simulate async I/O
+            self.logger.info(f"Parsed {url} ({len(clean)} items)")
+            return clean
         except Exception as e:
-            logger.error("parse error %s: %s", url, e)
-            continue
-    return sanitize(raw)
+            self.logger.error(f"Scrape error {e} on {url}")
+            return []
+
+    async def run(self):
+        tasks = [self.process_page(p) for p in self.pages]
+        results = await asyncio.gather(*tasks)
+        batch = [item for sublist in results for item in sublist]
+        if batch:
+            self.db.save_batch(batch)
+            self.logger.info(f"Saved {len(batch)} records in batch")
+        else:
+            self.logger.warning("No records scraped")
+        return batch  # <-- ajout du retour
+
+
+def run(pages):
+    asyncio.run(AsyncScraper(pages).run())
+
+# compatibilité ancienne API
+def extract(pages):
+    try:
+        scraper = AsyncScraper(pages)
+        result = asyncio.run(scraper.run())
+        if not isinstance(result, list):
+            return []
+        return result
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Extraction failed: {e}")
+        return []
