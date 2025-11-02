@@ -2,6 +2,15 @@ import aiohttp
 import asyncio
 import logging
 
+
+HEADERS = {
+    "User-Agent": "SpiderBot/0.8 (+https://github.com/ScrApErxeb/Spider)",
+}
+TIMEOUT = 15
+RETRY_COUNT = 3
+
+
+
 class AsyncFetcher:
     def __init__(self, delay=0.5, retries=2, backoff=1.5, concurrency=5):
         self.delay = delay
@@ -11,7 +20,7 @@ class AsyncFetcher:
         self.logger = logging.getLogger(__name__)
 
     async def _get(self, session, url, headers=None):
-        async with session.get(url, headers=headers, timeout=10) as resp:
+        async with session.get(url, headers=HEADERS, timeout=TIMEOUT) as resp:
             text = await resp.text()
             return text, resp.status
 
@@ -34,16 +43,18 @@ class AsyncFetcher:
                     delay *= self.backoff
             return None
 
-
-def fetch_page(url: str):
-    """Interface synchrone pour compatibilité avec le pipeline."""
-    fetcher = AsyncFetcher()
-
-    async def _run():
-        return await fetcher.fetch(url)
-
-    try:
-        return asyncio.run(_run())
-    except RuntimeError:  # boucle déjà en cours
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(_run())
+async def fetch_url(url, headers=None, timeout=10, retries=3):
+    """Télécharge le contenu HTML d'une URL avec gestion des erreurs et retries."""
+    for attempt in range(retries):
+        try:
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(url, timeout=timeout) as resp:
+                    if resp.status == 200:
+                        text = await resp.text()
+                        logging.debug(f"Fetched: {url}")
+                        return text
+                    else:
+                        logging.warning(f"Status {resp.status} for {url}")
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            logging.warning(f"Tentative {attempt+1}/{retries} échouée pour {url}: {e}")
+    return None

@@ -1,0 +1,28 @@
+crawler:
+  start_urls:
+    - "http://example.com"
+    - "http://test.com"
+  headers:
+    User-Agent: "SpiderBot/1.0 (+https://github.com/ScrApErxeb/Spider)"
+    Accept-Language: "en,fr,es,zh,de,ar,pt,hi,ru,ja"
+  timeout: 10
+  retries: 3
+  languages:
+    - en
+    - zh
+    - hi
+    - es
+    - fr
+    - ar
+    - bn
+    - ru
+    - pt
+    - ur
+
+storage:
+  database_path: "data/project.db"
+  export_dir: "exports"
+
+logging:
+  level: "INFO"
+  file: "logs/pipeline.log"

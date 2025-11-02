@@ -1,45 +1,38 @@
-from dotenv import load_dotenv
-import os
-import logging.config
 import yaml
+import logging
 from pathlib import Path
 
-def load_env():
-    load_dotenv()
-    _load_logging()
+CONFIG_PATH = Path("config/config.yaml")
 
-def _load_logging():
-    log_conf = Path(__file__).parent / "logging_conf.yaml"
-    if log_conf.exists():
-        with open(log_conf, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-            logging.config.dictConfig(config)
-    # runtime overrides
-    level = os.getenv("LOG_LEVEL")
-    logfile = os.getenv("LOG_FILE")
-    if level or logfile:
-        root = logging.getLogger()
-        if level:
-            root.setLevel(level)
-        if logfile:
-            from logging.handlers import RotatingFileHandler
-            fh = RotatingFileHandler(logfile, maxBytes=5_000_000, backupCount=3, encoding="utf-8")
-            fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-            fh.setFormatter(fmt)
-            root.addHandler(fh)
+def load_config():
+    if not CONFIG_PATH.exists():
+        raise FileNotFoundError(f"Fichier de configuration introuvable : {CONFIG_PATH}")
+    with CONFIG_PATH.open("r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
-def get(key, default=None):
-    return os.getenv(key, default)
+# --- Charger le fichier YAML ---
+config = load_config()
 
-def get_root_urls():
-    roots = os.getenv("ROOT_URLS", "https://example.com")
-    return [r.strip() for r in roots.split(",") if r.strip()]
+# --- Extraire les paramètres ---
+HEADERS = config["crawler"]["headers"]
+START_URLS = config["crawler"]["start_urls"]
+HTTP_TIMEOUT = config["crawler"]["timeout"]
+RETRY_COUNT = config["crawler"]["retries"]
+ALLOWED_LANGS = set(config["crawler"]["languages"])
 
-def get_user_agent():
-    return os.getenv("USER_AGENT", "SimpleBot/0.3")
+DB_PATH = config["storage"]["database_path"]
+EXPORT_DIR = config["storage"]["export_dir"]
 
-def get_delay():
-    try:
-        return float(os.getenv("FETCH_DELAY", "1"))
-    except ValueError:
-        return 1.0
+LOG_FILE = config["logging"]["file"]
+LOG_LEVEL = getattr(logging, config["logging"]["level"].upper(), logging.INFO)
+LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+
+# --- Configurer le logging global ---
+logging.basicConfig(
+    level=LOG_LEVEL,
+    filename=LOG_FILE,
+    format=LOG_FORMAT,
+    encoding="utf-8"
+)
+
+logging.info("Configuration chargée avec succès.")
