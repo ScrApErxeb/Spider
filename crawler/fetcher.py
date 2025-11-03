@@ -43,41 +43,21 @@ class AsyncFetcher:
             text = await resp.text(errors="ignore")
             return text, resp.status
 
-    async def fetch(self, url, headers=None):
-        """Télécharge une page avec retries et backoff exponentiel."""
-        async with self.semaphore:
-            delay = self.delay
-            for attempt in range(1, self.retries + 2):
-                try:
-                    text, status = await self._get(url, headers)
-                    if status == 200:
-                        async with self.lock:
-                            self.logger.debug(f"Fetched: {url}")
-                        await asyncio.sleep(self.delay)
-                        return text
-                    else:
-                        async with self.lock:
-                            self.logger.warning(f"Status {status} for {url}")
-                except Exception as e:
-                    async with self.lock:
-                        self.logger.error(f"Fetch error {e} for {url}, retry {attempt}")
-                    await asyncio.sleep(delay)
-                    delay *= self.backoff
-            return None
+    async def fetch(self, url, headers=None, timeout=10, retries=3):
+        from aiohttp import ClientTimeout
 
+        # --- normaliser timeout ---
+        if isinstance(timeout, dict):
+            timeout = ClientTimeout(**timeout)
+        elif not isinstance(timeout, ClientTimeout):
+            timeout = ClientTimeout(total=float(timeout))
 
-async def fetch_url(url, headers=None, timeout=HTTP_TIMEOUT, retries=RETRY_COUNT):
-    """Version simplifiée pour usage ponctuel."""
-    async with aiohttp.ClientSession(headers=headers or HEADERS) as session:
         for attempt in range(1, retries + 1):
             try:
-                async with session.get(url, timeout=timeout) as resp:
+                async with self.session.get(url, headers=headers, timeout=timeout) as resp:
                     if resp.status == 200:
-                        text = await resp.text(errors="ignore")
-                        logging.debug(f"Fetched: {url}")
-                        return text
+                        return await resp.text(errors="ignore")
                     else:
-                        logging.warning(f"Status {resp.status} for {url}")
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                logging.warning(f"Tentative {attempt}/{retries} échouée pour {url}: {e}")
-    return None
+                        logging.warning(f"Status {resp.status} pour {url}")
+            except Exception as e:
+                logging.error(f"Fetch error {e} pour {url}, retry {attempt}")

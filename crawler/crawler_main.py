@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import re
-from .fetcher import fetch_url
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from crawler.fetcher import AsyncFetcher
@@ -106,12 +105,19 @@ async def async_run_crawler(start_urls, headers, timeout, retries, allowed_langs
 
 
 async def run_crawler(start_urls, headers, timeout, retries, allowed_langs):
+    """Crawler principal (asynchrone)."""
+    visited = set()
+    to_visit = list(start_urls)
     results = []
-    for url in start_urls:
-        try:
-            html = await fetch_url(url, headers=headers, timeout=timeout, retries=retries)
-            if html:
-                results.append({"url": url, "content": html})
-        except Exception as e:
-            logging.error(f"Erreur sur {url}: {e}")
+
+    async with AsyncFetcher() as fetcher:
+        while to_visit and len(visited) < MAX_PAGES:
+            current_batch = to_visit[:5]
+            to_visit = to_visit[5:]
+            tasks = [
+                crawl_page(fetcher, u, headers, timeout, retries, allowed_langs, visited, to_visit, results)
+                for u in current_batch
+            ]
+            await asyncio.gather(*tasks)
+
     return results

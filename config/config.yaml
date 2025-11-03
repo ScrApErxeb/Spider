@@ -15,6 +15,7 @@ crawler:
 
   rate_limit_per_domain: 2
   
+  timeout: 10
   robots:
     enabled: false        # active la vérification robots.txt
     cache_expiry: 3600   # durée (en secondes) de validité du cache robots.txt

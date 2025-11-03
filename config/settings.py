@@ -15,11 +15,15 @@ config = load_config()
 
 from aiohttp import ClientTimeout
 
-t = config["crawler"].get("timeout", 10)
+t = config.get("crawler", {}).get("timeout", 10)
 if isinstance(t, dict):
     HTTP_TIMEOUT = ClientTimeout(**t)
 else:
-    HTTP_TIMEOUT = ClientTimeout(total=float(t))
+    try:
+        HTTP_TIMEOUT = ClientTimeout(total=float(t))
+    except Exception:
+        HTTP_TIMEOUT = ClientTimeout(total=10)
+
 
 # === Extraction des valeurs ===
 MAX_PAGES = config.get("crawler", {}).get("max_pages", 50)

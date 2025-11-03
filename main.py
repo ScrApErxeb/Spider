@@ -35,6 +35,12 @@ from storage.exporter import export_json, export_csv
 from config.settings import START_URLS as CONFIG_URLS
 
 
+from aiohttp import ClientTimeout
+
+if not isinstance(HTTP_TIMEOUT, ClientTimeout):
+    HTTP_TIMEOUT = ClientTimeout(total=float(HTTP_TIMEOUT))
+
+
 # =====================================================================
 # === CHARGEMENT DES URLS =============================================
 # =====================================================================
