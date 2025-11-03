@@ -29,18 +29,13 @@ class LinkTitleParser(HTMLParser):
             self.title += data.strip()
 
 
-def parse_and_sanitize(html, data):
+def parse_and_sanitize(url: str, html: str):
     parser = LinkTitleParser()
     parser.feed(html)
-    clean = []
-    for record in data:
-        title = record.get("title")
-        if title:
-            record["title"] = title.strip()
-            clean.append(record)
+
     return {
-        "title": parser.title,
-        "description": parser.description,
-        "links": parser.links,
-        "clean_data": clean
+        "url": url,
+        "title": parser.title.strip() if parser.title else "",
+        "description": parser.description.strip() if parser.description else "",
+        "links": parser.links
     }

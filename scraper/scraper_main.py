@@ -69,22 +69,15 @@ def extract_data_from_html(url, html):
         return {"title": "", "url": url, "content": ""}
 
 
-def run_scraper(crawled_data):
-    """
-    Reçoit une liste de (url, html). Retourne une liste de dicts structurés.
-    Gère les erreurs d’entrée et continue.
-    """
-    results = []
-    for item in crawled_data:
-        try:
-            url, html = item
-        except Exception:
-            logger.error("bad crawled item, expected (url, html): %r", item)
-            continue
-        if not html:
-            logger.warning("empty html for %s", url)
-            continue
+from .parser import parse_and_sanitize
 
-        record = extract_data_from_html(url, html)
-        results.append(record)
+def run_scraper(pages):
+    results = []
+    for p in pages:
+        try:
+            parsed = parse_and_sanitize(p["url"], p["content"])  # ← ici on passe bien data
+            results.append(parsed)
+        except Exception as e:
+            logging.error(f"parse error url: {e}")
     return results
+
