@@ -4,8 +4,8 @@ import re
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from crawler.fetcher import fetch_url
+from config.settings import MAX_PAGES
 
-MAX_PAGES = 5
 
 
 def is_allowed_language(html_content, allowed_langs):

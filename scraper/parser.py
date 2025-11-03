@@ -5,6 +5,7 @@ class LinkTitleParser(HTMLParser):
         super().__init__()
         self.links = []
         self.title = ""
+        self.description = ""
         self._in_title = False
 
     def handle_starttag(self, tag, attrs):
@@ -14,6 +15,10 @@ class LinkTitleParser(HTMLParser):
                     self.links.append(val)
         elif tag == "title":
             self._in_title = True
+        elif tag == "meta":
+            attrs_dict = dict(attrs)
+            if attrs_dict.get("name") == "description":
+                self.description = attrs_dict.get("content", "").strip()
 
     def handle_endtag(self, tag):
         if tag == "title":
@@ -35,6 +40,7 @@ def parse_and_sanitize(html, data):
             clean.append(record)
     return {
         "title": parser.title,
+        "description": parser.description,
         "links": parser.links,
         "clean_data": clean
     }

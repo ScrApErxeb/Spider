@@ -1,38 +1,47 @@
-import yaml
-import logging
 from pathlib import Path
+import yaml, logging, logging.config
 
-CONFIG_PATH = Path("config/config.yaml")
+BASE_DIR = Path(__file__).resolve().parents[1]
+CONFIG_PATH = BASE_DIR / "config" / "config.yaml"
 
 def load_config():
     if not CONFIG_PATH.exists():
-        raise FileNotFoundError(f"Fichier de configuration introuvable : {CONFIG_PATH}")
+        logging.warning(f"{CONFIG_PATH} introuvable. Valeurs par défaut utilisées.")
+        return {}
     with CONFIG_PATH.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-# --- Charger le fichier YAML ---
-config = load_config()
+config = load_config()  # ← ici avant utilisation
 
-# --- Extraire les paramètres ---
-HEADERS = config["crawler"]["headers"]
-START_URLS = config["crawler"]["start_urls"]
-HTTP_TIMEOUT = config["crawler"]["timeout"]
-RETRY_COUNT = config["crawler"]["retries"]
-ALLOWED_LANGS = set(config["crawler"]["languages"])
+# === Extraction des valeurs ===
+MAX_PAGES = config.get("crawler", {}).get("max_pages", 10)
 
-DB_PATH = config["storage"]["database_path"]
-EXPORT_DIR = config["storage"]["export_dir"]
 
-LOG_FILE = config["logging"]["file"]
-LOG_LEVEL = getattr(logging, config["logging"]["level"].upper(), logging.INFO)
+# === Configuration du logging ===
+if "version" in config:
+    logging.config.dictConfig(config)
+else:
+    logging.basicConfig(
+        level=getattr(logging, config.get("logging", {}).get("level", "INFO").upper(), logging.INFO),
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    )
+
+# === Extraction des valeurs avec fallback par défaut ===
+HEADERS = config.get("crawler", {}).get("headers", {})
+START_URLS = config.get("crawler", {}).get("start_urls", ["http://example.com"])
+HTTP_TIMEOUT = config.get("crawler", {}).get("timeout", 10)
+RETRY_COUNT = config.get("crawler", {}).get("retries", 3)
+ALLOWED_LANGS = set(config.get("crawler", {}).get("languages", ["en"]))
+
+DB_PATH = config.get("storage", {}).get("database_path", "data/project.db")
+EXPORT_DIR = config.get("storage", {}).get("export_dir", "exports")
+
+LOG_FILE = config.get("logging", {}).get("file", "logs/pipeline.log")
+LOG_LEVEL = getattr(logging, config.get("logging", {}).get("level", "INFO").upper(), logging.INFO)
 LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
-# --- Configurer le logging global ---
-logging.basicConfig(
-    level=LOG_LEVEL,
-    filename=LOG_FILE,
-    format=LOG_FORMAT,
-    encoding="utf-8"
-)
-
 logging.info("Configuration chargée avec succès.")
+
+if __name__ == "__main__":
+    print("Chargement config :", bool(config))
+    print("URLs de départ :", START_URLS)

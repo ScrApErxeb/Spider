@@ -1,12 +1,19 @@
 crawler:
   start_urls:
-    - "http://example.com"
-    - "http://test.com"
+    - "http://www.google.com"
+    - "https://www.python.org"
+    - "https://www.github.com"
+    - "https://www.stackoverflow.com"
+    - "https://www.reddit.com"
+
   headers:
     User-Agent: "SpiderBot/1.0 (+https://github.com/ScrApErxeb/Spider)"
     Accept-Language: "en,fr,es,zh,de,ar,pt,hi,ru,ja"
   timeout: 10
   retries: 3
+  max_pages: 20
+
+
   languages:
     - en
     - zh

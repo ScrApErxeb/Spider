@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from scraper.parser import parse_html
+from scraper.parser import parse_and_sanitize
 from scraper.parser import sanitize
 from storage.database import Database
 
@@ -13,7 +13,7 @@ class AsyncScraper:
     async def process_page(self, page):
         html, url = page
         try:
-            data = parse_html(html)
+            data = parse_and_sanitize(html)
             clean = sanitize(data)
             await asyncio.sleep(0)  # simulation d’I/O
             self.logger.info(f"Parsed {url} ({len(clean)} items)")
