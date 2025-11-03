@@ -128,9 +128,7 @@ def main():
     parsed = run_scraper(crawled)
     logging.info(f"{len(parsed)} éléments analysés")
 
-    # --- DATABASE -----------------------------------------------------
-    db = Database(path=DB_PATH)
-    db.connect()
+   # --- DATABASE -----------------------------------------------------
     tuples = [
         (
             p.get("title", ""),
@@ -139,8 +137,10 @@ def main():
         )
         for p in parsed
     ]
-    db.save_batch(tuples)
-    db.close()
+
+    with Database(DB_PATH) as db:
+        db.save_batch(tuples)
+
     logging.info(f"{len(tuples)} enregistrements sauvegardés")
 
     # --- EXPORTS ------------------------------------------------------

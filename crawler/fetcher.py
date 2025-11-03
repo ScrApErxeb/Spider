@@ -10,44 +10,56 @@ TIMEOUT = 15
 RETRY_COUNT = 3
 
 
-
 class AsyncFetcher:
-    def __init__(self, delay=0.5, retries=2, backoff=1.5, concurrency=5):
+    """Téléchargeur asynchrone réutilisant une seule session HTTP."""
+    def __init__(self, delay=0.5, retries=3, backoff=1.5, concurrency=5):
         self.delay = delay
         self.retries = retries
         self.backoff = backoff
         self.semaphore = asyncio.Semaphore(concurrency)
         self.logger = logging.getLogger(__name__)
+        self.lock = asyncio.Lock()
+        self.session = None  # session HTTP unique
 
-    async def _get(self, session, url, headers=None):
-        async with session.get(url, headers=HEADERS, timeout=TIMEOUT) as resp:
+    async def __aenter__(self):
+        self.session = aiohttp.ClientSession()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.session.close()
+
+    async def _get(self, url, headers=None):
+        async with self.session.get(url, headers=headers or HEADERS, timeout=TIMEOUT) as resp:
             text = await resp.text()
             return text, resp.status
 
     async def fetch(self, url, headers=None):
         async with self.semaphore:
             delay = self.delay
-            for attempt in range(self.retries + 1):
+            for attempt in range(1, self.retries + 2):
                 try:
-                    async with aiohttp.ClientSession() as session:
-                        text, status = await self._get(session, url, headers)
-                        if status == 200:
+                    text, status = await self._get(url, headers)
+                    if status == 200:
+                        async with self.lock:
                             self.logger.debug(f"Fetched: {url}")
-                            await asyncio.sleep(self.delay)
-                            return text
-                        else:
+                        await asyncio.sleep(self.delay)
+                        return text
+                    else:
+                        async with self.lock:
                             self.logger.warning(f"Status {status} for {url}")
                 except Exception as e:
-                    self.logger.error(f"Fetch error {e} for {url}, retry {attempt}")
+                    async with self.lock:
+                        self.logger.error(f"Fetch error {e} for {url}, retry {attempt}")
                     await asyncio.sleep(delay)
                     delay *= self.backoff
             return None
 
+
 async def fetch_url(url, headers=None, timeout=10, retries=3):
-    """Télécharge le contenu HTML d'une URL avec gestion des erreurs et retries."""
-    for attempt in range(retries):
-        try:
-            async with aiohttp.ClientSession(headers=headers) as session:
+    """Utilitaire simplifié réutilisant une session unique."""
+    async with aiohttp.ClientSession(headers=headers or HEADERS) as session:
+        for attempt in range(1, retries + 1):
+            try:
                 async with session.get(url, timeout=timeout) as resp:
                     if resp.status == 200:
                         text = await resp.text()
@@ -55,6 +67,6 @@ async def fetch_url(url, headers=None, timeout=10, retries=3):
                         return text
                     else:
                         logging.warning(f"Status {resp.status} for {url}")
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            logging.warning(f"Tentative {attempt+1}/{retries} échouée pour {url}: {e}")
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                logging.warning(f"Tentative {attempt}/{retries} échouée pour {url}: {e}")
     return None
