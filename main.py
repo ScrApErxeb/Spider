@@ -27,7 +27,7 @@ from config.settings import (
     CONFIG_PATH,
 )
 
-from crawler.robots_handler import RobotsHandler
+from utils.handlers import RobotsHandler
 from crawler.crawler_main import run_crawler
 from scraper.scraper_main import run_scraper
 from storage.database import Database

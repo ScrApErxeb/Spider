@@ -5,7 +5,7 @@ from .fetcher import fetch_url
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from crawler.fetcher import AsyncFetcher
-from crawler.robots_handler import RobotsHandler
+from utils.handlers import RobotsHandler
 from config.settings import MAX_PAGES, RESPECT_ROBOTS, config
 
 # --- RATE LIMITING PAR DOMAINE ---
