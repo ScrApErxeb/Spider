@@ -13,7 +13,7 @@ import logging
 import os
 import yaml
 from logging.handlers import RotatingFileHandler
-
+from storage.validators import validate_pages
 from config.settings import (
     RESPECT_ROBOTS,
     HEADERS,
@@ -35,10 +35,6 @@ from storage.exporter import export_json, export_csv
 from config.settings import START_URLS as CONFIG_URLS
 
 
-from aiohttp import ClientTimeout
-
-if not isinstance(HTTP_TIMEOUT, ClientTimeout):
-    HTTP_TIMEOUT = ClientTimeout(total=float(HTTP_TIMEOUT))
 
 
 # =====================================================================
@@ -149,14 +145,17 @@ async def main():
     parsed = run_scraper(crawled)
     logging.info(f"{len(parsed)} éléments analysés")
 
+
     # --- DATABASE ---
+    validated = validate_pages(parsed)
     tuples = [
-        (p.get("title", ""), p.get("url", ""), p.get("description", p.get("content", "")))
-        for p in parsed
+    (p["title"], str(p["url"]), p["description"])
+    for p in validated
     ]
     with Database(DB_PATH) as db:
         db.save_batch(tuples)
     logging.info(f"{len(tuples)} enregistrements sauvegardés")
+
 
     # --- EXPORTS ---
     json_path = export_json(parsed)
