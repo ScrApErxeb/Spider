@@ -10,16 +10,18 @@ crawler:
     User-Agent: "SpiderBot/1.0 (+https://github.com/ScrApErxeb/Spider)"
     Accept-Language: "en,fr,es,zh,de,ar,pt,hi,ru,ja"
 
+  timeout: 10
   retries: 3
   max_pages: 20
 
   rate_limit_per_domain: 2
-  
-  timeout: 10
-  robots:
-    enabled: false        # active la vérification robots.txt
-    cache_expiry: 3600   # durée (en secondes) de validité du cache robots.txt
 
+
+http_cache:
+  enabled: true
+  ttl: 300
+
+  robots: true
   languages:
     - en
     - zh

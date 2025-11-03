@@ -3,8 +3,15 @@ import asyncio
 import logging
 import time
 from urllib.parse import urlparse
-
-from config.settings import HEADERS, HTTP_TIMEOUT, RETRY_COUNT, RATE_LIMIT_PER_DOMAIN
+from config.settings import (
+    HEADERS,
+    HTTP_TIMEOUT,
+    RETRY_COUNT,
+    RATE_LIMIT_ENABLED,
+    RATE_LIMIT_DELAY,
+    HTTP_CACHE_ENABLED,
+    HTTP_CACHE_TTL,
+)
 
 
 class AsyncFetcher:
@@ -31,7 +38,7 @@ class AsyncFetcher:
         """Applique une limite de fréquence par domaine."""
         now = time.time()
         last_access = self.domain_locks.get(domain, 0)
-        interval = 1.0 / max(RATE_LIMIT_PER_DOMAIN, 1)
+        interval = 1.0 / max(RATE_LIMIT_DELAY, 1)
         if now - last_access < interval:
             await asyncio.sleep(interval - (now - last_access))
         self.domain_locks[domain] = time.time()

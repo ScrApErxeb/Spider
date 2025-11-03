@@ -51,6 +51,10 @@ RATE_LIMIT_PER_DOMAIN = config.get("crawler", {}).get("rate_limit", {})
 RATE_LIMIT_ENABLED = RATE_LIMIT_PER_DOMAIN.get("enabled", False)
 RATE_LIMIT_DELAY = RATE_LIMIT_PER_DOMAIN.get("delay", 0)
 
+# --- Cache HTTP ---
+HTTP_CACHE = config.get("http_cache", {})
+HTTP_CACHE_ENABLED = HTTP_CACHE.get("enabled", True)
+HTTP_CACHE_TTL = HTTP_CACHE.get("ttl", 300)
 
 #=== Stockage des données ===
 DB_PATH = config.get("storage", {}).get("database_path", "data/project.db")
