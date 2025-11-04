@@ -1,6 +1,8 @@
 from pathlib import Path
-import yaml, logging, logging.config
+import yaml
+import logging
 from aiohttp import ClientTimeout
+
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 CONFIG_PATH = BASE_DIR / "config" / "config.yaml"
@@ -14,54 +16,57 @@ def load_config():
 
 config = load_config()
 
-# === Timeout HTTP ===
-t = config.get("crawler", {}).get("timeout", 10)
-if isinstance(t, dict):
-    HTTP_TIMEOUT = ClientTimeout(**t)
-else:
-    try:
-        HTTP_TIMEOUT = ClientTimeout(total=float(t))
-    except Exception:
-        HTTP_TIMEOUT = ClientTimeout(total=10)
-
-# === Paramètres principaux ===
-START_URLS = config.get("crawler", {}).get("start_urls", ["http://example.com"])
-HEADERS = config.get("crawler", {}).get("headers", {})
+# === CRAWLER ===
+CRAWLER = config.get("crawler", {})
+START_URLS = CRAWLER.get("start_urls", [])
+HEADERS = CRAWLER.get("headers", {})
+TIMEOUT = CRAWLER.get("timeout", 10)
+RETRIES = CRAWLER.get("retries", 3)
+MAX_PAGES = CRAWLER.get("max_pages", 50)
+RESPECT_ROBOTS = CRAWLER.get("robots", False)
+RATE_LIMIT_PER_DOMAIN = CRAWLER.get("rate_limit_per_domain", 1)
+RATE_LIMIT_ENABLED = CRAWLER.get("rate_limit_enabled", True)
+RATE_LIMIT_DELAY = RATE_LIMIT_PER_DOMAIN  # requêtes par seconde
+# === Réessais réseau ===
 RETRY_COUNT = config.get("crawler", {}).get("retries", 3)
-MAX_PAGES = config.get("crawler", {}).get("max_pages", 50)
-RESPECT_ROBOTS = config.get("crawler", {}).get("robots")
-ALLOWED_LANGS = set(config.get("crawler", {}).get("languages", ["en"]))
 
-# === Limitation de vitesse ===
-RATE_LIMIT = config.get("crawler", {}).get("rate_limit", {})
-RATE_LIMIT_ENABLED = RATE_LIMIT.get("enabled", False)
-RATE_LIMIT_DELAY = RATE_LIMIT.get("delay", 0)
+# === Langues autorisées ===
+ALLOWED_LANGS = config.get("crawler", {}).get("allowed_langs", ["en", "fr"])
 
-# === Cache HTTP ===
+
+# === CACHE & STORAGE ===
 HTTP_CACHE = config.get("http_cache", {})
 HTTP_CACHE_ENABLED = HTTP_CACHE.get("enabled", True)
 HTTP_CACHE_TTL = HTTP_CACHE.get("ttl", 300)
 
-# === Stockage ===
-DB_PATH = config.get("storage", {}).get("database_path", "data/project.db")
-EXPORT_DIR = config.get("storage", {}).get("export_dir", "exports")
+STORAGE = config.get("storage", {})
+DB_PATH = STORAGE.get("database_path", "data/project.db")
+EXPORT_DIR = STORAGE.get("export_dir", "exports")
 
-# === Logging ===
-if "version" in config:
-    logging.config.dictConfig(config)
-else:
-    logging.basicConfig(
-        level=getattr(logging, config.get("logging", {}).get("level", "INFO").upper(), logging.INFO),
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-    )
-
+# === LOGGING SIMPLE ===
 LOG_FILE = config.get("logging", {}).get("file", "logs/pipeline.log")
 LOG_LEVEL = getattr(logging, config.get("logging", {}).get("level", "INFO").upper(), logging.INFO)
 LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
-logging.info("Configuration chargée avec succès.")
 
-if __name__ == "__main__":
-    print("Chargement config :", bool(config))
-    print("URLs de départ :", START_URLS)
-    print("Respect robots.txt :", RESPECT_ROBOTS)
+# ...
+TIMEOUT = CRAWLER.get("timeout", 10)
+if isinstance(TIMEOUT, dict):
+    HTTP_TIMEOUT = ClientTimeout(**TIMEOUT)
+else:
+    try:
+        HTTP_TIMEOUT = ClientTimeout(total=float(TIMEOUT))
+    except Exception:
+        HTTP_TIMEOUT = ClientTimeout(total=10)
+
+
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format=LOG_FORMAT,
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler()
+    ]
+)
+
+logging.info("Configuration chargée avec succès.")
