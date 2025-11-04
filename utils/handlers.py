@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 # === ROBOTS HANDLER =========================================
 # ============================================================
 
+import aiohttp
+import asyncio
+import logging
+from urllib.parse import urljoin, urlparse
+from config.settings import RESPECT_ROBOTS  # import du flag global
+
+logger = logging.getLogger(__name__)
+
 class RobotsHandler:
     """Gère robots.txt avec cache et respect des règles disallow."""
 
@@ -35,8 +43,10 @@ class RobotsHandler:
         return ""
 
     async def is_allowed(self, url, user_agent="*"):
-        """Retourne True si l’accès est permis selon robots.txt."""
-        from urllib.parse import urlparse
+        """Retourne True si l’accès est permis selon robots.txt, sauf si désactivé."""
+        if not RESPECT_ROBOTS:
+            return True  # robots.txt ignoré globalement
+
         parsed = urlparse(url)
         base = f"{parsed.scheme}://{parsed.netloc}"
 
@@ -44,10 +54,12 @@ class RobotsHandler:
             if base not in self.cache:
                 rules = await self._fetch_robots(base)
                 self.cache[base] = self._parse_robots(rules)
+
             disallowed = self.cache[base].get(user_agent, [])
             for path in disallowed:
                 if parsed.path.startswith(path):
                     return False
+
         return True
 
     def _parse_robots(self, text):
@@ -65,6 +77,7 @@ class RobotsHandler:
                 if path:
                     rules[current_agent].append(path)
         return rules
+
 
 
 # ============================================================
