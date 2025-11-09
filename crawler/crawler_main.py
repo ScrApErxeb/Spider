@@ -85,7 +85,7 @@ async def crawl_page(fetcher, url, headers, timeout, retries, allowed_langs, vis
         logging.error(f"Erreur {url}: {e}")
 
 
-async def async_run_crawler(start_urls, headers, timeout, retries, allowed_langs):
+async def async_run_crawler(start_urls, headers, timeout, retries, allowed_langs, flush_callback=None):
     visited = set()
     to_visit = list(start_urls)
     results = []
@@ -100,24 +100,45 @@ async def async_run_crawler(start_urls, headers, timeout, retries, allowed_langs
                 for u in current_batch
             ]
             await asyncio.gather(*tasks)
+
+            # --- FLUSH PÉRIODIQUE ---
+            if flush_callback and len(results) >= 20:  # par exemple chaque 20 pages
+                await flush_callback(results)
+                results.clear()  # vider après envoi
+
+    # flush final s’il reste des pages
+    if flush_callback and results:
+        await flush_callback(results)
+        results.clear()
 
     return results
 
-
-async def run_crawler(start_urls, headers, timeout, retries, allowed_langs):
-    """Crawler principal (asynchrone)."""
+async def run_crawler(start_urls, headers, timeout, retries, allowed_langs, flush_callback=None):
+    """Crawler principal (asynchrone) avec flush périodique."""
     visited = set()
     to_visit = list(start_urls)
     results = []
+    BATCH_SIZE = 20  # taille du flush
 
     async with AsyncFetcher() as fetcher:
         while to_visit and len(visited) < MAX_PAGES:
             current_batch = to_visit[:5]
             to_visit = to_visit[5:]
+
             tasks = [
                 crawl_page(fetcher, u, headers, timeout, retries, allowed_langs, visited, to_visit, results)
                 for u in current_batch
             ]
             await asyncio.gather(*tasks)
+
+            # --- FLUSH TO DATABASE OU SCRAPER ---
+            if flush_callback and len(results) >= BATCH_SIZE:
+                await flush_callback(results)
+                results.clear()
+
+        # flush final si reste des pages non vidées
+        if flush_callback and results:
+            await flush_callback(results)
+            results.clear()
 
     return results

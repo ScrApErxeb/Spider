@@ -1,9 +1,9 @@
 crawler:
   start_urls:
-    - "https://www.lefaso.net"
-    - "https://journaldumali.com"
-    - "https://www.actuniger.com"
-    - "https://www.lobservateur.bf"
+  
+  - "https://www.votresante.bf/"
+  
+
 
 
   headers:
@@ -11,11 +11,12 @@ crawler:
     Accept-Language: "en,fr,es,zh,de,ar,pt,hi,ru,ja"
   
   
-  timeout: 10
+  timeout: 50
   retries: 3
-  max_pages: 200
+  max_pages: 1000
   robots: false
   rate_limit_per_domain: 2
+  verify_ssl: false
 
 http_cache:
   enabled: true
@@ -32,3 +33,20 @@ storage:
 logging:
   level: "INFO"
   file: "logs/pipeline.log"
+
+
+
+salut:
+  - "https://ouagabuzz.com/"
+  - "https://maliweb.net/"
+  - "https://mali24.info/"
+  - "https://maliactu.net/"
+  - "https://askia24.net/"
+  - "https://maliactualites.com/"
+  - "https://www.journalduniger.com/"
+  - "https://www.infos-niger.com/"
+  - "https://www.nigerinfos.com/"
+  - "https://nigerfocus.com/"
+  - "https://www.nigerdiaspora.net/"
+  - "https://lefaso.net/"
+  - "https://www.burkina24.com/"

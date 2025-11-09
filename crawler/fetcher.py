@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+import ssl
 import logging
 import time
 from urllib.parse import urlparse
@@ -11,6 +12,7 @@ from config.settings import (
     RATE_LIMIT_DELAY,
     HTTP_CACHE_ENABLED,
     HTTP_CACHE_TTL,
+    VERIFY_SSL
 )
 
 
@@ -26,6 +28,9 @@ class AsyncFetcher:
         self.lock = asyncio.Lock()
         self.session = None
         self.domain_locks = {}  # {domaine: timestamp dernier accès}
+        self.ssl_context = None if VERIFY_SSL else ssl._create_unverified_context()
+
+
 
     async def __aenter__(self):
         self.session = aiohttp.ClientSession()
