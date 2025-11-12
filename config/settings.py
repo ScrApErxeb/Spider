@@ -51,6 +51,21 @@ LOG_LEVEL = getattr(logging, config.get("logging", {}).get("level", "INFO").uppe
 LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
 
+# Resolve LOG_FILE against BASE_DIR and ensure parent directory exists so
+# creating a FileHandler won't raise FileNotFoundError when 'logs/' is missing.
+from pathlib import Path as _Path
+_log_path = _Path(LOG_FILE)
+if not _log_path.is_absolute():
+    _log_path = BASE_DIR / _log_path
+try:
+    _log_path.parent.mkdir(parents=True, exist_ok=True)
+except Exception:
+    # If we cannot create the directory, fall back to stdout-only logging
+    logging.warning(f"Impossible de créer le répertoire de logs: {_log_path.parent}")
+
+# Use the resolved path when attaching the FileHandler
+LOG_FILE_PATH = str(_log_path)
+
 # ...
 TIMEOUT = CRAWLER.get("timeout", 10)
 if isinstance(TIMEOUT, dict):
@@ -66,7 +81,7 @@ logging.basicConfig(
     level=LOG_LEVEL,
     format=LOG_FORMAT,
     handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.FileHandler(LOG_FILE_PATH, encoding="utf-8"),
         logging.StreamHandler()
     ]
 )

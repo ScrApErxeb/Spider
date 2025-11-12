@@ -8,5 +8,8 @@ Pipeline modulaire de crawling, scraping et stockage des données.
 ## Installation
 ```bash
 python -m venv project_env
-source project_env/bin/activate  # (ou .\project_env\Scripts\activate sous Windows)
+source project_env/bin/activate  
+
+./project_env\Scripts\activate
+
 pip install -r requirements.txt
